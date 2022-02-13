@@ -12,12 +12,15 @@ fn main() {
 <html>
 <head>
 <style>
+/* this is applied to everything */
 * {
 color: green;
 }
 body {
+/* sets font color to blue */
 color: blue;
-background-color: red;
+/* sets background color to black */
+background-color: /*red*/ black;
 }
 body .cool {
 color: red;
