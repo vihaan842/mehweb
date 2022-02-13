@@ -8,7 +8,9 @@ enum NodeType {
     // string inside of text
     Text(String),
     // container type
-    Container(String)
+    Container(String),
+    // document
+    Document
 }
 pub struct Node {
     // whether node is text or container
@@ -23,6 +25,10 @@ pub struct Node {
     css: RefCell<HashMap<String, String>>,
 }
 impl Node {
+    // empty document
+    fn get_document() -> Node {
+	return Node{node_type: NodeType::Document, children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new())}
+    }
     // get new container node from tag
     fn from_tag(tag_content: String) -> Node {
 	let mut parts = Vec::new();
@@ -75,7 +81,6 @@ impl Node {
     pub fn find_css(&self) -> String {
 	let mut css = String::from("");
 	match &self.node_type {
-	    NodeType::Text(_) => {},
 	    NodeType::Container(tag_name) => {
 		if tag_name == &String::from("style") {
 		    for child in self.children.borrow().iter() {
@@ -90,6 +95,7 @@ impl Node {
 		    }
 		}
 	    }
+	    _ => {},
 	}
 	return css;
     }
@@ -104,8 +110,8 @@ impl Node {
 	    return self.params.get("id") == Some(&id_selector);
 	} else {
 	    match &self.node_type {
-		NodeType::Text(_) => return false,
 		NodeType::Container(tag_name) => return &selector == tag_name,
+		_ => return false
 	    }
 	}
     }
@@ -148,13 +154,20 @@ impl std::fmt::Display for Node {
 		}
 		write!(f, "{}", printed)
 	    },
+	    NodeType::Document => {
+		let mut printed = String::from("");
+		for child in self.children.borrow().iter() {
+		    printed += &format!("{}", child);
+		}
+		write!(f, "{}", printed)
+	    }
 	}
     }
 }
 
-pub fn parse(html: String) -> Vec<Rc<Node>> {
-    // tree to return
-    let mut tree = Vec::new();
+pub fn parse(html: String) -> Rc<Node> {
+    // document to return
+    let document = Rc::new(Node::get_document());
     // vec containing containers parser is currently in
     let mut current_containers = Vec::new();
     // whether parser is currently inside of tag
@@ -214,7 +227,7 @@ pub fn parse(html: String) -> Vec<Rc<Node>> {
 				current_containers[index].children.borrow_mut().push(Rc::clone(&node));
 				*node.parent.borrow_mut() = Some(Rc::clone(&current_containers[index])).to_owned();
 			    } else {
-				tree.push(node);
+				document.children.borrow_mut().push(Rc::clone(&node));
 			    }
 			}
 		    }
@@ -233,7 +246,7 @@ pub fn parse(html: String) -> Vec<Rc<Node>> {
 			current_containers[index].children.borrow_mut().push(Rc::clone(&node));
 			*node.parent.borrow_mut() = Some(Rc::clone(&current_containers[index])).to_owned();
 		    } else {
-			tree.push(current_containers.remove(0));
+			document.children.borrow_mut().push(Rc::clone(&current_containers.remove(0)));
 		    }
 		    tag_content = "".to_string();
 		} else {
@@ -266,7 +279,7 @@ pub fn parse(html: String) -> Vec<Rc<Node>> {
 	    }
 	}
     }
-    return tree;
+    return document;
 }
 
 // check wheter css selecot applies

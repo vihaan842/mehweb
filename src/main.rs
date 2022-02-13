@@ -34,10 +34,8 @@ color: red;
 </html>"
     );
     let parsed_html = html::parse(html);
-    for item in parsed_html {
-	let css = item.find_css();
-	let parsed_css = css::parse(css);
-	html::apply_css(parsed_css.clone(), Rc::clone(&item));
-	print!("{}", item);
-    }
+    let css = parsed_html.find_css();
+    let parsed_css = css::parse(css);
+    html::apply_css(parsed_css.clone(), Rc::clone(&parsed_html));
+    print!("{}", parsed_html);
 }
