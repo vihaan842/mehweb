@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-pub fn parse(css: String) -> HashMap<String, HashMap<String, String>> {
-    let mut rules = HashMap::new();
+pub fn parse(css: String) -> Vec<(String, HashMap<String, String>)> {
+    let mut rules = Vec::new();
     let mut params = HashMap::new();
     let mut in_selector = true;
     let mut selector_content = String::from("");
@@ -20,7 +20,7 @@ pub fn parse(css: String) -> HashMap<String, HashMap<String, String>> {
 	    if c == ':' {
 		in_key = false;
 	    } else if c == '}'{
-		rules.insert(selector_content.trim().to_string(), params.clone());
+		rules.push((selector_content.trim().to_string(), params.clone()));
 		params = HashMap::new();
 		selector_content = "".to_string();
 		in_selector = true;

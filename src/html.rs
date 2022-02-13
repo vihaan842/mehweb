@@ -81,6 +81,11 @@ impl Node {
     pub fn find_css(&self) -> String {
 	let mut css = String::from("");
 	match &self.node_type {
+	    NodeType::Document => {
+		for child in self.children.borrow().iter() {
+		    css += &child.find_css();
+		}
+	    },
 	    NodeType::Container(tag_name) => {
 		if tag_name == &String::from("style") {
 		    for child in self.children.borrow().iter() {
@@ -95,7 +100,7 @@ impl Node {
 		    }
 		}
 	    }
-	    _ => {},
+	    NodeType::Text(_) => {},
 	}
 	return css;
     }
@@ -314,8 +319,8 @@ fn selector_applies(node: Rc<Node>, selector: String) -> bool {
 }
 
 
-// get ready for crazy recursive function
-pub fn apply_css(css_rules: HashMap<String, HashMap<String, String>>, node: Rc<Node>) {
+// apply css to all nodes
+pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Node>) {
     // get to all the other nodes in tree
     for child in node.children.borrow().iter() {
 	apply_css(css_rules.clone(), Rc::clone(child));

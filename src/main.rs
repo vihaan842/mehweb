@@ -26,8 +26,7 @@ color: red;
 </head>
 <body>
 <p class='cool' style='color:yellow;' onclick='console.log(\\\"fart\\\"); console.log(\"poo\")'>Some text</p>
-<!--add this in later
-<!--<p>Some more text</p>-->
+<p class='cool'>Some more text</p>
 <p>Some text <a href='https://www.example.com/'>with a link</a></p>
 <img src='fart.png' class='cool'>
 </body>
