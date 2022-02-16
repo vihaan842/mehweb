@@ -42,8 +42,19 @@ color: red;
     let parsed_css = css::parse(css);
     html::apply_css(parsed_css.clone(), Rc::clone(&parsed_html));
     print!("{}", parsed_html);
-    let cool_rect = layout::Rect::new(0., 0., 200., 100.);
+    let rect1 = layout::Rect::new(layout::Position::Absolute(10.),
+				  layout::Position::Absolute(0.),
+				  layout::Position::Absolute(200.),
+				  layout::Position::Relative(0.5),
+				  [0.5, 0.0, 1.0]);
+    let rect2 = layout::Rect::new(layout::Position::Absolute(100.),
+				  layout::Position::Absolute(100.),
+				  layout::Position::Absolute(200.),
+				  layout::Position::Relative(0.5),
+				  [0.0, 0.5, 1.0]);
+
     let mut window = graphics::Window::new();
-    window.add_rect(cool_rect);
+    window.add_rect(rect1);
+    window.add_rect(rect2);
     window.start()
 }

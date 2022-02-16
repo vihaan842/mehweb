@@ -16,9 +16,11 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
 #version 330 core
 out vec4 FragColor;
 
+uniform vec4 rectColor;
+
 void main()
 {
-    FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    FragColor = rectColor;
 } 
 "#;
 
@@ -85,10 +87,10 @@ impl Window {
 
 		for rect in &self.rects {
 		    // rectangle positions
-		    let start_x: f32 = (rect.x/self.width as f32)*2. - 1.;
-		    let start_y: f32 = (rect.y/self.height as f32)*-2. + 1.;
-		    let end_x: f32 = ((rect.x+rect.width)/self.width as f32)*2. - 1.;
-		    let end_y: f32 = ((rect.y+rect.height)/self.height as f32)*-2. + 1.;
+		    let start_x: f32 = self.get_relative_pos_x(rect.x);
+		    let start_y: f32 = self.get_relative_pos_y(rect.y);
+		    let end_x: f32 = self.get_relative_pos_x(rect.x+rect.width);
+		    let end_y: f32 = self.get_relative_pos_y(rect.y+rect.height);
 		    // vertices of rectangle
 		    let vertices: [f32;12] = [
 			start_x, start_y, 0.0, // top-left
@@ -116,6 +118,10 @@ impl Window {
 				   (indices.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
 				   &indices[0] as *const u32 as *const std::os::raw::c_void,
 				   gl::STATIC_DRAW);
+		    // set color
+		    let rect_color = std::ffi::CString::new("rectColor").unwrap();
+		    let vertex_color_location = gl::GetUniformLocation(self.shader_program, rect_color.as_ptr());
+		    gl::Uniform4f(vertex_color_location, rect.color[0], rect.color[1], rect.color[2], 1.0);
 		    // draw stuff
 		    gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * std::mem::size_of::<GLfloat>() as GLsizei, std::ptr::null());
 		    gl::EnableVertexAttribArray(0);
@@ -136,6 +142,20 @@ impl Window {
 	    }
 	}
     }
+    fn get_relative_pos_x(&self, pos: crate::layout::Position) -> f32 {
+	match pos {
+	    crate::layout::Position::Absolute(pixels) => (pixels/self.width as f32)*2. - 1.,
+	    crate::layout::Position::Relative(percent) => percent*2. - 1.,
+	    crate::layout::Position::Combo(pixels, percent) => (pixels/self.width as f32)*2. + percent*2. - 1.
+	}
+    }
+    fn get_relative_pos_y(&self, pos: crate::layout::Position) -> f32 {
+	match pos {
+	    crate::layout::Position::Absolute(pixels) => (pixels/self.height as f32)*-2. + 1.,
+	    crate::layout::Position::Relative(percent) => percent*-2. + 1.,
+	    crate::layout::Position::Combo(pixels, percent) => (pixels/self.height as f32)*-2. + percent*-2. + 1.
+	}
+    }    
     pub fn add_rect(&mut self, rect: crate::layout::Rect) {
 	self.rects.push(rect);
     }
