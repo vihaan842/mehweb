@@ -1,6 +1,8 @@
 mod html;
 mod css;
 mod rules;
+mod graphics;
+mod layout;
 
 use std::rc::Rc;
 
@@ -40,4 +42,8 @@ color: red;
     let parsed_css = css::parse(css);
     html::apply_css(parsed_css.clone(), Rc::clone(&parsed_html));
     print!("{}", parsed_html);
+    let cool_rect = layout::Rect::new(0., 0., 200., 100.);
+    let mut window = graphics::Window::new();
+    window.add_rect(cool_rect);
+    window.start()
 }

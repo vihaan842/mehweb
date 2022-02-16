@@ -287,7 +287,7 @@ pub fn parse(html: String) -> Rc<Node> {
     return document;
 }
 
-// check wheter css selecot applies
+// check wheter css selector applies
 fn selector_applies(node: Rc<Node>, selector: String) -> bool {
     let mut descendants = selector.split(" ").collect::<Vec<&str>>();
     let mut applies = true;
