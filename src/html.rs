@@ -321,15 +321,11 @@ fn selector_applies(node: Rc<Node>, selector: String) -> bool {
 
 // apply css to all nodes
 pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Node>) {
-    // get to all the other nodes in tree
-    for child in node.children.borrow().iter() {
-	apply_css(css_rules.clone(), Rc::clone(child));
-    }
     // applies rules
-    for (selector, rules) in css_rules {
+    for (selector, rules) in css_rules.clone() {
 	if selector_applies(Rc::clone(&node), selector) {
 	    for (key, value) in rules {
-		node.css.borrow_mut().insert(key, value);
+		apply_css_rule(Rc::clone(&node), key, value);
 	    }
 	}
     }
@@ -343,9 +339,21 @@ pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Nod
 		if parts.len() == 2 {
 		    let key = parts[0].trim().to_string();
 		    let value = parts[1].trim().to_string();
-		    node.css.borrow_mut().insert(key, value);
+		    apply_css_rule(Rc::clone(&node), key, value);
 		}
 	    }
 	}
     }
+    // get to all the other nodes in tree
+    for child in node.children.borrow().iter() {
+	apply_css(css_rules.clone(), Rc::clone(child));
+    }
+}
+fn apply_css_rule(node: Rc<Node>, key: String, value: String) {
+    if rules::INHERITED_PROPERTIES.iter().any(|e| e==&key) {
+	for child in node.children.borrow_mut().iter() {
+	    apply_css_rule(Rc::clone(child), key.clone(), value.clone());
+	}
+    }
+    node.css.borrow_mut().insert(key, value);
 }

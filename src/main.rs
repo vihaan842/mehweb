@@ -29,7 +29,7 @@ width: 20px;
 </style>
 </head>
 <body>
-<p class='cool' style='background-color:red;' onclick='console.log(\"fart\"); console.log(\"poo\")'>Some text</p>
+<p class='cool' style='background-color:red;color:green' onclick='console.log(\"fart\"); console.log(\"poo\")'>Some text</p>
 <p class='cool' style='background-color:green;'>Some more text</p>
 <p>Some text <a href='https://www.example.com/'>with a link</a></p>
 <img src='fart.png' class='cool' style='background-color:blue;'>
