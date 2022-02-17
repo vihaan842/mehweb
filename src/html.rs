@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-enum NodeType {
+pub enum NodeType {
     // string inside of text
     Text(String),
     // container type
@@ -14,15 +14,15 @@ enum NodeType {
 }
 pub struct Node {
     // whether node is text or container
-    node_type: NodeType,
+    pub node_type: NodeType,
     // child nodes
-    children: RefCell<Vec<Rc<Node>>>,
+    pub children: RefCell<Vec<Rc<Node>>>,
     // parent node
     parent: RefCell<Option<Rc<Node>>>,
     // parameters
     params: HashMap<String, String>,
     // css properties
-    css: RefCell<HashMap<String, String>>,
+    pub css: RefCell<HashMap<String, String>>,
 }
 impl Node {
     // empty document

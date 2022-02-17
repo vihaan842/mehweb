@@ -142,21 +142,46 @@ impl Window {
 	    }
 	}
     }
-    fn get_relative_pos_x(&self, pos: crate::layout::Position) -> f32 {
+    fn get_relative_pos_x(&self, pos: crate::layout::Distance) -> f32 {
 	match pos {
-	    crate::layout::Position::Absolute(pixels) => (pixels/self.width as f32)*2. - 1.,
-	    crate::layout::Position::Relative(percent) => percent*2. - 1.,
-	    crate::layout::Position::Combo(pixels, percent) => (pixels/self.width as f32)*2. + percent*2. - 1.
+	    crate::layout::Distance::Absolute(pixels) => (pixels/self.width as f32)*2. - 1.,
+	    crate::layout::Distance::Relative(percent) => percent*2. - 1.,
+	    crate::layout::Distance::Combo(pixels, percent) => (pixels/self.width as f32)*2. + percent*2. - 1.
 	}
     }
-    fn get_relative_pos_y(&self, pos: crate::layout::Position) -> f32 {
+    fn get_relative_pos_y(&self, pos: crate::layout::Distance) -> f32 {
 	match pos {
-	    crate::layout::Position::Absolute(pixels) => (pixels/self.height as f32)*-2. + 1.,
-	    crate::layout::Position::Relative(percent) => percent*-2. + 1.,
-	    crate::layout::Position::Combo(pixels, percent) => (pixels/self.height as f32)*-2. + percent*-2. + 1.
+	    crate::layout::Distance::Absolute(pixels) => (pixels/self.height as f32)*-2. + 1.,
+	    crate::layout::Distance::Relative(percent) => percent*-2. + 1.,
+	    crate::layout::Distance::Combo(pixels, percent) => (pixels/self.height as f32)*-2. + percent*-2. + 1.
 	}
     }    
-    pub fn add_rect(&mut self, rect: crate::layout::Rect) {
-	self.rects.push(rect);
+    pub fn render_document(&mut self, document: std::rc::Rc<crate::html::Node>) {
+	let (mut rects, _) = crate::layout::render_node(document, crate::layout::Distance::Absolute(0.));
+	self.rects.append(&mut rects);
+    }
+}
+
+pub fn get_color(color: String) -> [f32;3] {
+    if color.starts_with("rgb") {
+	let args = color.trim_start_matches("rgb(").trim_end_matches(")").split(",").collect::<Vec<&str>>();
+	[args[0].trim().parse::<f32>().unwrap()/255.,
+	 args[1].trim().parse::<f32>().unwrap()/255.,
+	 args[2].trim().parse::<f32>().unwrap()/255.]
+    } else if color.starts_with("#") {
+	let hex_color = color.trim_start_matches("#");
+	let r = u32::from_str_radix(&hex_color[0..2], 16).unwrap() as f32;
+        let g = u32::from_str_radix(&hex_color[2..4], 16).unwrap() as f32;
+        let b = u32::from_str_radix(&hex_color[4..6], 16).unwrap() as f32;
+	[r/255.,
+	 g/255.,
+	 b/255.]
+    } else {
+	for (key, value) in crate::rules::DEFAULT_COLORS {
+	    if key.to_string() == color {
+		return get_color(value.to_string());
+	    }
+	}
+	[0.0, 0.0, 0.0]
     }
 }
