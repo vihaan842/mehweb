@@ -4,11 +4,11 @@ use crate::html::{Node, NodeType};
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Distance {
     // pixels
-    Absolute(f32),
+    Absolute(f64),
     // percent
-    Relative(f32),
+    Relative(f64),
     // a combination of the two
-    Combo(f32, f32),
+    Combo(f64, f64),
 }
 
 // add two position enums together
@@ -86,9 +86,9 @@ impl Distance {
 	    }
 	    total
 	} else if s.ends_with("%") {
-	    Distance::Relative(s.trim_end_matches('%').parse::<f32>().unwrap()/100.)
+	    Distance::Relative(s.trim_end_matches('%').parse::<f64>().unwrap()/100.)
 	} else {
-	    Distance::Absolute(s.trim_end_matches("px").parse::<f32>().unwrap())
+	    Distance::Absolute(s.trim_end_matches("px").parse::<f64>().unwrap())
 	}
     }
 }
@@ -99,11 +99,11 @@ pub struct Rect {
     pub y: Distance,
     pub width: Distance,
     pub height: Distance,
-    pub color: [f32;3],
+    pub color: [f64;3],
 }
 
 impl Rect {
-    pub fn new(x: Distance, y: Distance, width: Distance, height: Distance, color: [f32;3]) -> Rect {
+    pub fn new(x: Distance, y: Distance, width: Distance, height: Distance, color: [f64;3]) -> Rect {
 	return Rect{x: x, y: y, width: width, height: height, color: color};
     }
 }

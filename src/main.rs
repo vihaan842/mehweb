@@ -41,7 +41,7 @@ width: 20px;
     let parsed_css = css::parse(css);
     html::apply_css(parsed_css.clone(), Rc::clone(&parsed_html));
     print!("{}", parsed_html);
-    let mut window = graphics::Window::new();
-    window.render_document(parsed_html);
-    window.start()
+    let (run_app, render_document) = crate::graphics::build_window();
+    render_document(parsed_html);
+    run_app();
 }
