@@ -200,7 +200,10 @@ pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
 		},
 		None => (y_pos, y_pos)
 	    };
-	    let color = match node.css.borrow().get("background-color") {Some(c) => crate::graphics::get_color(c.to_string()), None => [1.0, 1.0, 1.0, 0.0]};
+	    let color = match node.css.borrow().get("background-color") {
+		Some(c) => crate::graphics::get_color(c.to_string()),
+		None => [1.0, 1.0, 1.0, 0.0]
+	    };
 	    let mut return_rects = vec![Rect::new(width, height, visual_height, color)];
 	    for rect in rects {
 		return_rects.push(rect);
@@ -208,10 +211,17 @@ pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
 	    return_rects
 	},
 	NodeType::Text(text) => {
-	    let label = Rect::new_with_label([1.0, 1.0, 1.0, 0.0],
-					     match node.css.borrow().get("font-size") {Some(s) => s.parse::<usize>().unwrap(), None => 10},
-					     text.to_string());
-	    vec![label]
+	    let color = match node.css.borrow().get("color") {
+		Some(c) => crate::graphics::get_color(c.to_string()),
+		None => [0.0, 0.0, 0.0, 1.0]
+	    };
+	    let height = match node.css.borrow().get("font-size") {
+		Some(s) => s.parse::<usize>().unwrap(),
+		None => 10
+	    };
+	    vec![Rect::new_with_label(color,
+				      height,
+				      text.to_string())]
 	}
     }
 }

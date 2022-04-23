@@ -27,6 +27,8 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 	    let rects: std::cell::Ref<Vec<crate::layout::Rect>> = rects_getter.borrow();
 	    let rects: &Vec<crate::layout::Rect> = rects.as_ref();
 	    for rect in rects {
+		// set color
+		cr.set_source_rgba(rect.color[0], rect.color[1], rect.color[2], rect.color[3]);
 		// find relative position
 		let start_x: f64 = get_absolute_pos(width, rect.x);
 		let start_y: f64 = get_absolute_pos(height, rect.y);
@@ -35,13 +37,11 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 		match &rect.label {
 		    // draw rectangle
 		    None => {
-			cr.set_source_rgba(rect.color[0], rect.color[1], rect.color[2], rect.color[3]);
 			cr.rectangle(start_x, start_y, rect_width, rect_height);
 			cr.fill().expect("Invalid cairo surface state");
 		    },
 		    // draw text
 		    Some(s) => {
-			cr.set_source_rgb(0.0, 0.0, 0.0);
 			cr.select_font_face("DejaVu Sans", FontSlant::Normal, FontWeight::Normal);
 			cr.set_font_size(rect_height);
 			cr.move_to(start_x, start_y+rect_height);

@@ -22,10 +22,6 @@ background-color: yellow /*#000000*/;
 /* position stuff */
 height: 100px;
 }
-body .cool {
-height: 10px;
-width: 20px;
-}
 </style>
 </head>
 <body>
