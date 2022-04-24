@@ -174,24 +174,56 @@ pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
 	    }
 	    let mut rects = Vec::new();
 	    let mut y_pos = Distance::Absolute(0.);
+	    let margin = match node.css.borrow().get("margin") {
+		Some(m) => {
+		    Distance::from(m.to_string())
+		},
+		None => Distance::Absolute(0.)
+	    };
+	    let margin_left = match node.css.borrow().get("margin-left") {
+		Some(m) => {
+		    Distance::from(m.to_string())
+		},
+		None => margin
+	    };
+	    // let margin_right = match node.css.borrow().get("margin-right") {
+	    // 	Some(m) => {
+	    // 	    Distance::from(m.to_string())
+	    // 	},
+	    // 	None => margin
+	    // }
+	    let margin_top = match node.css.borrow().get("margin-top") {
+		Some(m) => {
+		    Distance::from(m.to_string())
+		},
+		None => margin
+	    };
+	    let margin_bottom = match node.css.borrow().get("margin-bottom") {
+		Some(m) => {
+		    Distance::from(m.to_string())
+		},
+		None => margin
+	    };
 	    for child in node.children.borrow().iter() {
 		let child_rects = render_node(Rc::clone(child));
 		if child_rects.len() > 0 {
 		    let child_y_size = child_rects[0].height;
 		    for mut rect in child_rects {
-			rect.y += y_pos;
+			rect.y += y_pos + margin_top;
+			rect.x += margin_left;
 			rects.push(rect);
 		    }
 		    y_pos += child_y_size;
 		}
 	    }
+	    y_pos += margin_bottom;
 	    let width = match node.css.borrow().get("width") {
 		Some(w) => Distance::from(w.to_string()),
 		None => Distance::Relative(1.)
 	    };
 	    let (height, visual_height) = match node.css.borrow().get("height") {
 		Some(h) => {
-		    let h = Distance::from(h.to_string());
+		    let h = Distance::from(h.to_string()) + margin_bottom;
 		    if h > y_pos {
 			(h, h)
 		    } else {
