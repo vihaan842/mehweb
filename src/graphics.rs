@@ -44,7 +44,8 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 		    Some(s) => {
 			cr.select_font_face("DejaVu Sans", FontSlant::Normal, FontWeight::Normal);
 			cr.set_font_size(rect_height);
-			cr.move_to(start_x, start_y+rect_height*0.75);
+			let fe = cr.font_extents().expect("Invalid cairo surface state");
+			cr.move_to(start_x, start_y-fe.descent+fe.height);
 			cr.show_text(s).expect("Invalid cairo surface state");
 		    }
 		}
