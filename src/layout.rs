@@ -138,8 +138,8 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn new(width: Distance, height: Distance, visual_height: Distance, color: [f64;4]) -> Rect {
-	return Rect{x: Distance::Absolute(0.), y: Distance::Absolute(0.), width: width, height: height, visual_height: visual_height, color: color, label: None};
+    pub fn new(x: Distance, y: Distance, width: Distance, height: Distance, visual_height: Distance, color: [f64;4]) -> Rect {
+	return Rect{x: x, y: y, width: width, height: height, visual_height: visual_height, color: color, label: None};
     }
     pub fn new_with_label(color: [f64;4], font_size: usize, label: String) -> Rect {
 	let height = Distance::Absolute(font_size as f64);
@@ -150,7 +150,9 @@ impl Rect {
 pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
     match &node.node_type {
 	NodeType::Document => {
-	    let mut rects = vec![Rect::new(Distance::Relative(1.),
+	    let mut rects = vec![Rect::new(Distance::Absolute(0.),
+					   Distance::Absolute(0.),
+					   Distance::Relative(1.),
 					   Distance::Relative(1.),
 					   Distance::Relative(1.),
 					   [1.0,1.0,1.0, 0.0])];
@@ -173,17 +175,12 @@ pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
 		return Vec::new();
 	    }
 	    let mut rects = Vec::new();
-	    let mut y_pos = Distance::Absolute(0.);
 	    let margin = match node.css.borrow().get("margin") {
-		Some(m) => {
-		    Distance::from(m.to_string())
-		},
+		Some(m) => Distance::from(m.to_string()),
 		None => Distance::Absolute(0.)
 	    };
 	    let margin_left = match node.css.borrow().get("margin-left") {
-		Some(m) => {
-		    Distance::from(m.to_string())
-		},
+		Some(m) => Distance::from(m.to_string()),
 		None => margin
 	    };
 	    // let margin_right = match node.css.borrow().get("margin-right") {
@@ -193,50 +190,63 @@ pub fn render_node(node: Rc<Node>) -> Vec<Rect> {
 	    // 	None => margin
 	    // }
 	    let margin_top = match node.css.borrow().get("margin-top") {
-		Some(m) => {
-		    Distance::from(m.to_string())
-		},
+		Some(m) => Distance::from(m.to_string()),
 		None => margin
 	    };
 	    let margin_bottom = match node.css.borrow().get("margin-bottom") {
-		Some(m) => {
-		    Distance::from(m.to_string())
-		},
+		Some(m) => Distance::from(m.to_string()),
 		None => margin
 	    };
+	    let padding = match node.css.borrow().get("padding") {
+		Some(p) => Distance::from(p.to_string()),
+		None => Distance::Absolute(0.),
+	    };
+	    let padding_left = match node.css.borrow().get("padding-left") {
+		Some(p) => Distance::from(p.to_string()),
+		None => padding,
+	    };
+	    let padding_top = match node.css.borrow().get("padding-top") {
+		Some(p) => Distance::from(p.to_string()),
+		None => padding,
+	    };
+	    let padding_bottom = match node.css.borrow().get("padding-bottom") {
+		Some(p) => Distance::from(p.to_string()),
+		None => padding,
+	    };
+	    let mut y_pos = margin_top+padding_top;
 	    for child in node.children.borrow().iter() {
 		let child_rects = render_node(Rc::clone(child));
 		if child_rects.len() > 0 {
 		    let child_y_size = child_rects[0].height;
 		    for mut rect in child_rects {
-			rect.y += y_pos + margin_top;
-			rect.x += margin_left;
+			rect.y += y_pos;
+			rect.x += margin_left + padding_left;
 			rects.push(rect);
 		    }
 		    y_pos += child_y_size;
 		}
 	    }
-	    y_pos += margin_bottom;
+	    y_pos += padding_bottom + margin_bottom;
 	    let width = match node.css.borrow().get("width") {
 		Some(w) => Distance::from(w.to_string()),
 		None => Distance::Relative(1.)
 	    };
 	    let (height, visual_height) = match node.css.borrow().get("height") {
 		Some(h) => {
-		    let h = Distance::from(h.to_string()) + margin_bottom;
+		    let h = Distance::from(h.to_string());
 		    if h > y_pos {
 			(h, h)
 		    } else {
 			(y_pos, h)
 		    }
 		},
-		None => (y_pos, y_pos)
+		None => (y_pos, y_pos-margin_top-margin_bottom)
 	    };
 	    let color = match node.css.borrow().get("background-color") {
 		Some(c) => crate::graphics::get_color(c.to_string()),
 		None => [1.0, 1.0, 1.0, 0.0]
 	    };
-	    let mut return_rects = vec![Rect::new(width, height, visual_height, color)];
+	    let mut return_rects = vec![Rect::new(margin_left, margin_top, width, height, visual_height, color)];
 	    for rect in rects {
 		return_rects.push(rect);
 	    }

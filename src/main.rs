@@ -21,11 +21,9 @@ color: blue;
 background-color: yellow /*#000000*/;
 /* position stuff */
 height: 100px;
-margin: 5px;
-margin-top: 20px;
 }
 body .cool {
-margin: 3px;
+padding: 5px;
 }
 </style>
 </head>
