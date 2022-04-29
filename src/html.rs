@@ -1,4 +1,5 @@
 use crate::rules;
+use crate::layout::LayoutBox;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -23,11 +24,13 @@ pub struct Node {
     params: HashMap<String, String>,
     // css properties
     pub css: RefCell<HashMap<String, String>>,
+    // rendered information
+    pub render: Rc<RefCell<LayoutBox>>,
 }
 impl Node {
     // empty document
     fn get_document() -> Node {
-	return Node{node_type: NodeType::Document, children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new())}
+	return Node{node_type: NodeType::Document, children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
     // get new container node from tag
     fn from_tag(tag_content: String) -> Node {
@@ -65,11 +68,11 @@ impl Node {
 	    let param_parts = param.splitn(2, "=").collect::<Vec<&str>>();
 	    params.insert(param_parts[0].to_string(), param_parts[1].to_string());
 	}
-	Node{node_type: NodeType::Container(tag_name.to_string()), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: params, css: RefCell::new(HashMap::new())}
+	Node{node_type: NodeType::Container(tag_name.to_string()), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: params, css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
     // get new text node from text
     fn from_text(text: String) -> Node {
-	return Node{node_type: NodeType::Text(text), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new())}
+	return Node{node_type: NodeType::Text(text), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
     // checks if container node has end tag
     fn is_empty_element(&self) -> bool {
@@ -321,6 +324,27 @@ fn selector_applies(node: Rc<Node>, selector: String) -> bool {
 
 // apply css to all nodes
 pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Node>) {
+    // applies default rules
+    match &node.node_type {
+	NodeType::Container(tag_name) => {
+	    let default = rules::DEFAULT_CSS.iter().find(|t| t.0 == tag_name);
+	    match default {
+		Some((_, default)) => {
+		    let rules = default.split(";");
+		    for rule in rules {
+			let parts = rule.split(":").collect::<Vec<&str>>();
+			if parts.len() == 2 {
+			    let key = parts[0].trim().to_string();
+			    let value = parts[1].trim().to_string();
+			    apply_css_rule(Rc::clone(&node), key, value);
+			}
+		    }
+		},
+		None => {},
+	    }
+	},
+	_ => {}
+    }
     // applies rules
     for (selector, rules) in css_rules.clone() {
 	if selector_applies(Rc::clone(&node), selector) {

@@ -23,15 +23,13 @@ background-color: yellow /*#000000*/;
 height: 100px;
 }
 body .cool {
-padding: 5px;
+background-color: green;
 }
 </style>
 </head>
 <body>
-<p class='cool' style='background-color:red;color:green;font-size:20' onclick='console.log(\"fart\"); console.log(\"poo\")'>Test: gggyyyjjjTTT</p>
-<p class='cool' style='background-color:green;'>Some more text</p>
-<p>Some text <a href='https://www.example.com/'>with a link</a></p>
-<img src='fart.png' class='cool' style='background-color:blue;'>
+<h1 class='cool'>Title! ygygyg</h1>
+<p class='cool'>Paragraph!</p>
 </body>
 </html>"
     );
