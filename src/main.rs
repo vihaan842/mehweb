@@ -20,9 +20,9 @@ color: blue;
 /* position stuff */
 height: 100px;
 }
-/*body .cool {
+body .cool {
 background-color: green;
-}*/
+}
 </style>
 </head>
 <body>

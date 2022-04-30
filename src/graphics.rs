@@ -1,6 +1,6 @@
 use adw::prelude::*;
 use adw::{ApplicationWindow, HeaderBar};
-use adw::gtk::{Application, Orientation, DrawingArea, cairo::{FontSlant, FontWeight, Context}};
+use adw::gtk::{Application, Orientation, DrawingArea, cairo::{FontSlant, FontWeight, Context, Path}};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -28,15 +28,16 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 	let document = Rc::clone(&document);
 	drawing_area.set_draw_func(move |_, cr, width, height| {
 	    // recursive function to draw nodes
-	    fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, width: i32, height: i32) {
+	    fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, width: i32, height: i32) -> Vec<(Path, [f64;4])> {
 		if node.css.borrow().get("display") == Some(&"none".to_string()) {
-		    return;
+		    return vec![(cr.copy_path().expect("Invalid cairo surface state or path"), [1.0, 1.0, 1.0, 0.0])];
 		}
 		let render = &mut *node.render.borrow_mut();
 		match &render.content {
 		    Content::Solid(color) => {
 			// get to child nodes
 			let mut child_height = Distance::Absolute(0.);
+			let mut child_paths = Vec::new();
 			let mut last_bottom_margin = Distance::Absolute(0.);
 			for child in node.children.borrow().iter() {
 			    let mut top_margin = get_absolute_pos(height, child.render.borrow().margin_top)-get_absolute_pos(height, last_bottom_margin);
@@ -44,7 +45,7 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 				top_margin = 0.;
 			    }
 			    child.render.borrow_mut().margin_top = Distance::Absolute(top_margin);
-			    draw_node(cr, Rc::clone(&child), left+render.margin_left+render.padding_left, top+render.margin_top+render.padding_top+child_height, width, height);
+			    child_paths.append(&mut draw_node(cr, Rc::clone(&child), left+render.margin_left+render.padding_left, top+render.margin_top+render.padding_top+child_height, width, height));
 			    let child_render = &mut *child.render.borrow_mut();
 			    match &child_render.height {
 				Some(h) => {
@@ -53,9 +54,9 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 				},
 				None => {}
 			    }
+			    cr.new_path();
 			}
 			render.height = Some(child_height);
-			cr.set_source_rgba(color[0], color[1], color[2], color[3]);
 			let visual_height = match render.visual_height {
 			    Some(h) => h,
 			    None => child_height
@@ -65,26 +66,34 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 			let rect_width = get_absolute_pos(width, render.visual_width);
 			let rect_height = get_absolute_pos(height, visual_height);
 			cr.rectangle(start_x, start_y, rect_width, rect_height);
-			cr.fill().expect("Invalid cairo surface state");
+			let mut paths = vec![(cr.copy_path().expect("Invalid cairo surface state or path"), *color)];
+			paths.append(&mut child_paths);
+			paths
 		    },
 		    Content::Text(label) => {
 			let color = label.font_color;
-			cr.set_source_rgba(color[0], color[1], color[2], color[3]);
 			cr.select_font_face(crate::rules::DEFAULT_FONT, label.slant, label.weight);
 			cr.set_font_size(get_absolute_pos(height, render.visual_height.unwrap()));
 			let fe = cr.font_extents().expect("Invalid cairo surface state");
 			let start_x = get_absolute_pos(width, left);
 			let start_y = get_absolute_pos(height, top)-fe.descent+fe.height;
 			cr.move_to(start_x, start_y);
-			cr.show_text(&label.text).expect("Invalid cairo surface state");
+			cr.text_path(&label.text);
 			render.height = Some(Distance::Absolute(fe.height));
+			vec![(cr.copy_path().expect("Invalid cairo surface state or path"), color)]
 		    },
 		}
 	    }
 	    let document = Rc::clone(&document);
 	    match &*document.borrow() {
 		Some(document) => {
-		    let _ = draw_node(cr, Rc::clone(document), Distance::Absolute(0.), Distance::Absolute(0.), width, height);
+		    let paths = draw_node(cr, Rc::clone(document), Distance::Absolute(0.), Distance::Absolute(0.), width, height);
+		    for (path, color) in paths {
+			cr.new_path();
+			cr.set_source_rgba(color[0], color[1], color[2], color[3]);
+			cr.append_path(&path);
+			cr.fill().expect("Invalid cairo surface state or path");
+		    }
 		},
 		None => {}
 	    };
