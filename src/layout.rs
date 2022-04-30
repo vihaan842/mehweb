@@ -125,27 +125,6 @@ impl From<String> for Distance {
     }
 }
 
-// #[derive(Debug, Clone, PartialEq)]
-// pub struct Rect {
-//     pub x: Distance,
-//     pub y: Distance,
-//     pub width: Distance,
-//     pub height: Distance,
-//     pub visual_height: Distance,
-//     pub color: [f64;4],
-//     pub label: Option<Label>,
-// }
-
-// impl Rect {
-//     pub fn new(x: Distance, y: Distance, width: Distance, height: Distance, visual_height: Distance, color: [f64;4]) -> Rect {
-// 	return Rect{x: x, y: y, width: width, height: height, visual_height: visual_height, color: color, label: None};
-//     }
-//     pub fn new_with_label(x: Distance, y: Distance, color: [f64;4], font_size: Distance, text: String, weight: FontWeight, slant: FontSlant) -> Rect {
-// 	let label = Label{text: text, weight: weight, slant: slant};
-// 	return Rect{x: x, y: y, width: Distance::Relative(1.), height: font_size, visual_height: font_size, color: color, label: Some(label)};
-//     }
-// }
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct LayoutBox {
     pub margin_left: Distance,
@@ -190,6 +169,7 @@ pub enum Content {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Label {
     pub text: String,
+    pub font_size: Distance,
     pub font_color: [f64;4],
     pub weight: FontWeight,
     pub slant: FontSlant,

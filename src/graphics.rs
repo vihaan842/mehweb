@@ -73,7 +73,7 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 		    Content::Text(label) => {
 			let color = label.font_color;
 			cr.select_font_face(crate::rules::DEFAULT_FONT, label.slant, label.weight);
-			cr.set_font_size(get_absolute_pos(height, render.visual_height.unwrap()));
+			cr.set_font_size(get_absolute_pos(height, label.font_size));
 			let fe = cr.font_extents().expect("Invalid cairo surface state");
 			let start_x = get_absolute_pos(width, left);
 			let start_y = get_absolute_pos(height, top)-fe.descent+fe.height;
@@ -235,7 +235,7 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		Some(c) => crate::graphics::get_color(c.to_string()),
 		None => [0.0, 0.0, 0.0, 1.0]
 	    };
-	    let height = match node.css.borrow().get("font-size") {
+	    let font_size = match node.css.borrow().get("font-size") {
 		Some(s) => Distance::from(s.to_string()),
 		None => Distance::Absolute(crate::rules::DEFAULT_FONT_SIZE as f64)
 	    };
@@ -255,9 +255,8 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		None => FontSlant::Normal,
 	    };
 	    let layout_box = &mut *node.render.borrow_mut();
-	    layout_box.visual_width = max_width;
-	    layout_box.visual_height = Some(height);
 	    layout_box.content = Content::Text(Label{text: t.to_string(),
+						     font_size: font_size,
 						     font_color: color,
 						     weight: weight,
 						     slant: slant});

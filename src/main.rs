@@ -15,8 +15,9 @@ fn main() {
 <head>
 <style>
 body {
-/* sets font color to blue */
+/* sets colors */
 color: blue;
+background-color: red;
 /* position stuff */
 height: 100px;
 }
