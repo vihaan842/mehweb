@@ -159,7 +159,7 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		render_node(Rc::clone(&child), max_width, max_height);
 	    }
 	},
-	NodeType::Container(_) => {
+	NodeType::Container(tag_name) => {
 	    let margin = match node.css.borrow().get("margin") {
 		Some(m) => Distance::from(m.to_string()),
 		None => Distance::Absolute(0.)
@@ -213,15 +213,24 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		None => [1.0, 1.0, 1.0, 0.0]
 	    };
 	    let layout_box = &mut *node.render.borrow_mut();
-	    layout_box.margin_left = margin_left;
-	    layout_box.margin_right = margin_right;
-	    layout_box.margin_top = margin_top;
-	    layout_box.margin_bottom = margin_bottom;
-	    layout_box.padding_left = padding_left;
-	    layout_box.padding_right = padding_right;
-	    layout_box.padding_top = padding_top;
-	    layout_box.padding_bottom = padding_bottom;
-	    layout_box.visual_width = width;
+	    // weird condition where body's margin is actually padding
+	    if tag_name == "body" {
+		layout_box.padding_left = margin_left;
+		layout_box.padding_right = margin_right;
+		layout_box.padding_top = margin_top;
+		layout_box.padding_bottom = margin_bottom;
+		layout_box.visual_width = width + margin_left + margin_right;
+	    } else {
+		layout_box.margin_left = margin_left;
+		layout_box.margin_right = margin_right;
+		layout_box.margin_top = margin_top;
+		layout_box.margin_bottom = margin_bottom;
+		layout_box.padding_left = padding_left;
+		layout_box.padding_right = padding_right;
+		layout_box.padding_top = padding_top;
+		layout_box.padding_bottom = padding_bottom;
+		layout_box.visual_width = width;
+	    }
 	    layout_box.visual_height = height;
 	    layout_box.content = Content::Solid(color);
 	    let new_max_width = max_width-margin_left-margin_right-padding_left-padding_right;
