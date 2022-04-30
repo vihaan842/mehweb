@@ -156,25 +156,14 @@ pub struct LayoutBox {
     pub padding_top: Distance,
     pub padding_right: Distance,
     pub padding_bottom: Distance,
+    pub height: Option<Distance>,
+    pub width: Option<Distance>,
     pub visual_width: Distance,
     pub visual_height: Option<Distance>,
     pub content: Content,
 }
 
 impl LayoutBox {
-    pub fn new(margin_left: Distance, margin_right: Distance, margin_top: Distance, margin_bottom: Distance, padding_left: Distance, padding_right: Distance, padding_top: Distance, padding_bottom: Distance, visual_width: Distance, visual_height: Option<Distance>, content: Content) -> LayoutBox {
-	LayoutBox{margin_left: margin_left,
-		  margin_right: margin_right,
-		  margin_top: margin_top,
-		  margin_bottom: margin_bottom,
-		  padding_left: padding_left,
-		  padding_right: padding_right,
-		  padding_top: padding_top,
-		  padding_bottom: padding_bottom,
-		  visual_width: visual_width,
-		  visual_height: visual_height,
-		  content: content}
-    }
     pub fn empty() -> LayoutBox {
 	LayoutBox{margin_left: Distance::Absolute(0.),
 		  margin_right: Distance::Absolute(0.),
@@ -184,6 +173,8 @@ impl LayoutBox {
 		  padding_right: Distance::Absolute(0.),
 		  padding_top: Distance::Absolute(0.),
 		  padding_bottom: Distance::Absolute(0.),
+		  width: None,
+		  height: None,
 		  visual_width: Distance::Absolute(0.),
 		  visual_height: None,
 		  content: Content::Solid([1.0, 1.0, 1.0, 0.0])}

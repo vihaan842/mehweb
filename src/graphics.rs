@@ -5,7 +5,7 @@ use adw::gtk::{Application, Orientation, DrawingArea, cairo::{FontSlant, FontWei
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::layout::{Distance, Content, Label, LayoutBox};
+use crate::layout::{Distance, Content, Label};
 use crate::html::{Node, NodeType};
 
 pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Node>)>) {
@@ -28,18 +28,33 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 	let document = Rc::clone(&document);
 	drawing_area.set_draw_func(move |_, cr, width, height| {
 	    // recursive function to draw nodes
-	    fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, width: i32, height: i32) -> Distance {
+	    fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, width: i32, height: i32) {
 		if node.css.borrow().get("display") == Some(&"none".to_string()) {
-		    return Distance::Absolute(0.);
+		    return;
 		}
-		let render = &*node.render.borrow();
-		// get to child nodes
-		let mut child_height = Distance::Absolute(0.);
-		for child in node.children.borrow().iter() {
-		    child_height += draw_node(cr, Rc::clone(&child), left+render.margin_left+render.padding_left, top+render.margin_top+render.padding_top, width, height);
-		}
+		let render = &mut *node.render.borrow_mut();
 		match &render.content {
 		    Content::Solid(color) => {
+			// get to child nodes
+			let mut child_height = Distance::Absolute(0.);
+			let mut last_bottom_margin = Distance::Absolute(0.);
+			for child in node.children.borrow().iter() {
+			    let mut top_margin = get_absolute_pos(height, child.render.borrow().margin_top)-get_absolute_pos(height, last_bottom_margin);
+			    if top_margin < 0. {
+				top_margin = 0.;
+			    }
+			    child.render.borrow_mut().margin_top = Distance::Absolute(top_margin);
+			    draw_node(cr, Rc::clone(&child), left+render.margin_left+render.padding_left, top+render.margin_top+render.padding_top+child_height, width, height);
+			    let child_render = &mut *child.render.borrow_mut();
+			    match &child_render.height {
+				Some(h) => {
+				    child_height += child_render.margin_top + *h + child_render.margin_bottom;
+				    last_bottom_margin = child_render.margin_bottom;
+				},
+				None => {}
+			    }
+			}
+			render.height = Some(child_height);
 			cr.set_source_rgba(color[0], color[1], color[2], color[3]);
 			let visual_height = match render.visual_height {
 			    Some(h) => h,
@@ -51,7 +66,6 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 			let rect_height = get_absolute_pos(height, visual_height);
 			cr.rectangle(start_x, start_y, rect_width, rect_height);
 			cr.fill().expect("Invalid cairo surface state");
-			child_height + render.padding_top + render.padding_bottom + render.margin_top + render.margin_bottom
 		    },
 		    Content::Text(label) => {
 			let color = label.font_color;
@@ -59,9 +73,11 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 			cr.select_font_face(crate::rules::DEFAULT_FONT, label.slant, label.weight);
 			cr.set_font_size(get_absolute_pos(height, render.visual_height.unwrap()));
 			let fe = cr.font_extents().expect("Invalid cairo surface state");
-			cr.move_to(get_absolute_pos(width, left), get_absolute_pos(height, top)-fe.descent+fe.height);
+			let start_x = get_absolute_pos(width, left);
+			let start_y = get_absolute_pos(height, top)-fe.descent+fe.height;
+			cr.move_to(start_x, start_y);
 			cr.show_text(&label.text).expect("Invalid cairo surface state");
-			Distance::Absolute(fe.height)
+			render.height = Some(Distance::Absolute(fe.height));
 		    },
 		}
 	    }
@@ -187,17 +203,18 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		Some(c) => crate::graphics::get_color(c.to_string()),
 		None => [1.0, 1.0, 1.0, 0.0]
 	    };
-	    *node.render.borrow_mut() = LayoutBox::new(margin_left,
-						       margin_right,
-						       margin_top,
-						       margin_bottom,
-						       padding_left,
-						       padding_right,
-						       padding_top,
-						       padding_bottom,
-						       width,
-						       height,
-						       Content::Solid(color));
+	    let layout_box = &mut *node.render.borrow_mut();
+	    layout_box.margin_left = margin_left;
+	    layout_box.margin_right = margin_right;
+	    layout_box.margin_top = margin_top;
+	    layout_box.margin_bottom = margin_bottom;
+	    layout_box.padding_left = padding_left;
+	    layout_box.padding_right = padding_right;
+	    layout_box.padding_top = padding_top;
+	    layout_box.padding_bottom = padding_bottom;
+	    layout_box.visual_width = width;
+	    layout_box.visual_height = height;
+	    layout_box.content = Content::Solid(color);
 	    let new_max_width = max_width-margin_left-margin_right-padding_left-padding_right;
 	    let new_max_height = max_height-margin_top-margin_bottom-padding_top-padding_bottom;
 	    for child in node.children.borrow().iter() {
@@ -228,20 +245,13 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 		},
 		None => FontSlant::Normal,
 	    };
-	    *node.render.borrow_mut() = LayoutBox::new(Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       Distance::Absolute(0.),
-						       max_width,
-						       Some(height),
-						       Content::Text(Label{text: t.to_string(),
-									   font_color: color,
-									   weight: weight,
-									   slant: slant}));
+	    let layout_box = &mut *node.render.borrow_mut();
+	    layout_box.visual_width = max_width;
+	    layout_box.visual_height = Some(height);
+	    layout_box.content = Content::Text(Label{text: t.to_string(),
+						     font_color: color,
+						     weight: weight,
+						     slant: slant});
 	},
     }
 }

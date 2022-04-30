@@ -17,14 +17,12 @@ fn main() {
 body {
 /* sets font color to blue */
 color: blue;
-/* sets background color to black */
-background-color: yellow /*#000000*/;
 /* position stuff */
 height: 100px;
 }
-body .cool {
+/*body .cool {
 background-color: green;
-}
+}*/
 </style>
 </head>
 <body>
