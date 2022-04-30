@@ -10,7 +10,7 @@ pub enum Distance {
     Combo(f64, f64),
 }
 
-// add two position enums together
+// add distances
 impl std::ops::Add for Distance {
     type Output = Self;
 
@@ -40,6 +40,8 @@ impl std::ops::Add for Distance {
 	}
     }
 }
+
+// subtract distances
 impl std::ops::Sub for Distance {
     type Output = Self;
 
@@ -69,50 +71,22 @@ impl std::ops::Sub for Distance {
 	}
     }
 }
+
+// add one distance to another
 impl std::ops::AddAssign for Distance {
     fn add_assign(&mut self, other: Self) {
 	*self = *self+other;
     }
 }
+
+// subtract one distance from another
 impl std::ops::SubAssign for Distance {
     fn sub_assign(&mut self, other: Self) {
 	*self = *self-other;
     }
 }
-impl std::cmp::PartialOrd for Distance {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-	match self {
-	    Distance::Absolute(pixels) => {
-		match other {
-		    Distance::Absolute(other_pixels) => pixels.partial_cmp(other_pixels),
-		    Distance::Relative(_) => None,
-		    Distance::Combo(_, _) => None,
-		}
-	    },
-	    Distance::Relative(percent) => {
-		match other {
-		    Distance::Absolute(_) => None,
-		    Distance::Relative(other_percent) => percent.partial_cmp(other_percent),
-		    Distance::Combo(_, _) => None,
-		}
-	    },
-	    Distance::Combo(pixels, percent) => {
-		match other{
-		    Distance::Absolute(_) => None,
-		    Distance::Relative(_) => None,
-		    Distance::Combo(other_pixels, other_percent) => {
-			if pixels.partial_cmp(other_pixels) == percent.partial_cmp(other_percent) {
-			    pixels.partial_cmp(other_pixels)
-			} else {
-			    None
-			}
-		    }
-		}
-	    },
-	}
-    }
-}
 
+// get distance from string
 impl From<String> for Distance {
     fn from(s: String) -> Distance {
 	if s.ends_with("em") {
@@ -125,6 +99,7 @@ impl From<String> for Distance {
     }
 }
 
+// box with size data
 #[derive(Debug, Clone, PartialEq)]
 pub struct LayoutBox {
     pub margin_left: Distance,
@@ -160,12 +135,14 @@ impl LayoutBox {
     }
 }
 
+// content of box
 #[derive(Debug, Clone, PartialEq)]
 pub enum Content {
     Solid([f64;4]),
     Text(Label)
 }
 
+// text
 #[derive(Debug, Clone, PartialEq)]
 pub struct Label {
     pub text: String,

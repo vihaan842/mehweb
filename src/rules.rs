@@ -166,6 +166,7 @@ pub const DEFAULT_COLORS: [(&str,&str);141] = [
     ("yellowgreen","#9ACD32"),
 ];
 
+// css properties that are inherited from parents
 pub const INHERITED_PROPERTIES: [&str;37] = [
     "border-collapse",
     "border-spacing",
@@ -206,6 +207,7 @@ pub const INHERITED_PROPERTIES: [&str;37] = [
     "word-wrap",
 ];
 
+// default css for different elements
 pub const DEFAULT_CSS: [(&str, &str);77] = [
     ("address", "display: block;font-style: italic;"),
     ("area", "display: none;"),

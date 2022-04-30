@@ -81,6 +81,7 @@ impl Node {
 	    _ => false
 	}
     }
+    // gets css from <style> tags
     pub fn find_css(&self) -> String {
 	let mut css = String::from("");
 	match &self.node_type {
@@ -107,6 +108,7 @@ impl Node {
 	}
 	return css;
     }
+    // figures out if a basic selector (tag name, class name, id, etc.) applies
     fn basic_selector_applies(&self, selector: String) -> bool {
 	if selector == "*" {
 	    return true;
@@ -124,7 +126,7 @@ impl Node {
 	}
     }
 }
-// print tree
+// print tree for debugging
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.node_type {
