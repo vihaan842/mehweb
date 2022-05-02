@@ -1,4 +1,4 @@
-use adw::gtk::cairo::{FontSlant, FontWeight};
+use adw::gtk::pango::{Style, Weight};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Distance {
@@ -148,6 +148,6 @@ pub struct Label {
     pub text: String,
     pub font_size: Distance,
     pub font_color: [f64;4],
-    pub weight: FontWeight,
-    pub slant: FontSlant,
+    pub weight: Weight,
+    pub slant: Style,
 }

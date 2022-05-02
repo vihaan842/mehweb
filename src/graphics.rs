@@ -1,6 +1,6 @@
 use adw::prelude::*;
 use adw::{ApplicationWindow, HeaderBar};
-use adw::gtk::{Application, Orientation, DrawingArea, cairo::{FontSlant, FontWeight, Context, Path}};
+use adw::gtk::{Application, Orientation, DrawingArea, cairo::{Context, Path}, pango::{FontDescription, Style, Weight, Gravity, Stretch, Variant}};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -82,17 +82,27 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 		    // draw text
 		    Content::Text(label) => {
 			// set font properties
-			let color = label.font_color;
-			cr.select_font_face(crate::rules::DEFAULT_FONT, label.slant, label.weight);
-			cr.set_font_size(get_absolute_pos(height, label.font_size));
-			let fe = cr.font_extents().expect("Invalid cairo surface state");
-			let start_x = get_absolute_pos(width, left);
-			let start_y = get_absolute_pos(height, top)-fe.descent+fe.height;
-			// draw
-			cr.move_to(start_x, start_y);
-			cr.text_path(&label.text);
-			render.height = Some(Distance::Absolute(fe.height));
+			let mut font_desc = FontDescription::new();
+			font_desc.set_family(crate::rules::DEFAULT_FONT);
+			font_desc.set_absolute_size(get_absolute_pos(height, label.font_size) * adw::gtk::pango::SCALE as f64);
+			font_desc.set_style(label.slant);
+			font_desc.set_weight(label.weight);
+			font_desc.set_gravity(Gravity::South);
+			font_desc.set_stretch(Stretch::Normal);
+			font_desc.set_variant(Variant::Normal);
+			// make text with pango
+			let layout = pangocairo::create_layout(&cr).unwrap();
+			layout.set_font_description(Some(&font_desc));
+			layout.set_width(get_absolute_pos(width, render.visual_width) as i32 * adw::gtk::pango::SCALE);
+			layout.set_text(&label.text);
+			// find out height and width of text
+			let (text_width, text_height) = layout.pixel_size();
+			render.height = Some(Distance::Absolute(text_height as f64));
+			render.width = Some(Distance::Absolute(text_width as f64));
 			// return paths
+			cr.move_to(get_absolute_pos(width, left), get_absolute_pos(height, top));
+			let color = label.font_color;
+			pangocairo::layout_path(&cr, &layout);
 			vec![(cr.copy_path().expect("Invalid cairo surface state or path"), color)]
 		    },
 		}
@@ -279,21 +289,22 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 	    };
 	    let weight = match node.css.borrow().get("font-weight") {
 		Some(s) => match s.as_str() {
-		    "bold" => FontWeight::Bold,
-		    _ => FontWeight::Normal,
+		    "bold" => Weight::Bold,
+		    _ => Weight::Normal,
 		},
-		None => FontWeight::Normal,
+		None => Weight::Normal,
 	    };
 	    let slant = match node.css.borrow().get("font-style") {
 		Some(s) => match s.as_str() {
-		    "italic" => FontSlant::Italic,
-		    "oblique" => FontSlant::Oblique,
-		    _ => FontSlant::Normal,
+		    "italic" => Style::Italic,
+		    "oblique" => Style::Oblique,
+		    _ => Style::Normal,
 		},
-		None => FontSlant::Normal,
+		None => Style::Normal,
 	    };
 	    // set label
 	    let layout_box = &mut *node.render.borrow_mut();
+	    layout_box.visual_width = max_width;
 	    layout_box.content = Content::Text(Label{text: t.to_string(),
 						     font_size: font_size,
 						     font_color: color,
