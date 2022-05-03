@@ -46,7 +46,7 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 			let mut child_height = Distance::Absolute(0.);
 			let mut child_paths = Vec::new();
 			let mut last_bottom_margin = Distance::Absolute(0.);
-			for child in node.children.borrow().iter() {
+			for child in node.children().borrow().iter() {
 			    let mut top_margin = get_absolute_pos(height, child.render.borrow().margin_top)-get_absolute_pos(height, last_bottom_margin);
 			    if top_margin < 0. {
 				top_margin = 0.;
@@ -184,14 +184,14 @@ pub fn get_color(color: String) -> [f64;4] {
 pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
     match &node.node_type {
 	// document
-	NodeType::Document => {
+	NodeType::Document(children) => {
 	    // get to children
-	    for child in node.children.borrow().iter() {
+	    for child in children.borrow().iter() {
 		render_node(Rc::clone(&child), max_width, max_height);
 	    }
 	},
 	// containers
-	NodeType::Container(tag_name) => {
+	NodeType::Container(tag_name, children, _) => {
 	    // find margins and padding
 	    let margin = match node.css.borrow().get("margin") {
 		Some(m) => Distance::from(m.to_string()),
@@ -273,7 +273,7 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 	    let new_max_width = max_width-margin_left-margin_right-padding_left-padding_right;
 	    let new_max_height = max_height-margin_top-margin_bottom-padding_top-padding_bottom;
 	    // get to children
-	    for child in node.children.borrow().iter() {
+	    for child in children.borrow().iter() {
 		render_node(Rc::clone(&child), new_max_width, new_max_height);
 	    }
 	},

@@ -8,29 +8,25 @@ use std::cell::RefCell;
 pub enum NodeType {
     // string inside of text
     Text(String),
-    // container type
-    Container(String),
+    // container type, children, and params
+    Container(String, RefCell<Vec<Rc<Node>>>, HashMap<String, String>),
     // document
-    Document
+    Document(RefCell<Vec<Rc<Node>>>)
 }
 pub struct Node {
     // whether node is text or container
     pub node_type: NodeType,
-    // child nodes
-    pub children: RefCell<Vec<Rc<Node>>>,
     // parent node
     parent: RefCell<Option<Rc<Node>>>,
-    // parameters
-    params: HashMap<String, String>,
     // css properties
     pub css: RefCell<HashMap<String, String>>,
-    // rendered information
+    // layout render
     pub render: Rc<RefCell<LayoutBox>>,
 }
 impl Node {
     // empty document
     fn get_document() -> Node {
-	return Node{node_type: NodeType::Document, children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	return Node{node_type: NodeType::Document(RefCell::new(Vec::new())), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
     // get new container node from tag
     fn from_tag(tag_content: String) -> Node {
@@ -68,16 +64,24 @@ impl Node {
 	    let param_parts = param.splitn(2, "=").collect::<Vec<&str>>();
 	    params.insert(param_parts[0].to_string(), param_parts[1].to_string());
 	}
-	Node{node_type: NodeType::Container(tag_name.to_string()), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: params, css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	Node{node_type: NodeType::Container(tag_name.to_string(), RefCell::new(Vec::new()), params), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+    }
+    // gets children, if there are any
+    pub fn children(&self) -> &RefCell<Vec<Rc<Node>>> {
+	match &self.node_type {
+	    NodeType::Document(children) => children,
+	    NodeType::Container(_, children, _) => children,
+	    NodeType::Text(_) => panic!("Node has no children!"),
+	}
     }
     // get new text node from text
     fn from_text(text: String) -> Node {
-	return Node{node_type: NodeType::Text(text), children: RefCell::new(Vec::new()), parent: RefCell::new(None), params: HashMap::new(), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	return Node{node_type: NodeType::Text(text), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
     // checks if container node has end tag
     fn is_empty_element(&self) -> bool {
 	match &self.node_type {
-	    NodeType::Container(tag_name) => rules::EMPTY_ELEMENTS.iter().any(|e| e==&tag_name),
+	    NodeType::Container(tag_name, _, _) => rules::EMPTY_ELEMENTS.iter().any(|e| e==&tag_name),
 	    _ => false
 	}
     }
@@ -85,21 +89,21 @@ impl Node {
     pub fn find_css(&self) -> String {
 	let mut css = String::from("");
 	match &self.node_type {
-	    NodeType::Document => {
-		for child in self.children.borrow().iter() {
+	    NodeType::Document(children) => {
+		for child in children.borrow().iter() {
 		    css += &child.find_css();
 		}
 	    },
-	    NodeType::Container(tag_name) => {
+	    NodeType::Container(tag_name, children, _) => {
 		if tag_name == &String::from("style") {
-		    for child in self.children.borrow().iter() {
+		    for child in children.borrow().iter() {
 			match &child.node_type {
 			    NodeType::Text(text) => css += text,
 			    _ => {}
 			}
 		    }
 		} else {
-		    for child in self.children.borrow().iter() {
+		    for child in children.borrow().iter() {
 			css += &child.find_css();
 		    }
 		}
@@ -110,19 +114,21 @@ impl Node {
     }
     // figures out if a basic selector (tag name, class name, id, etc.) applies
     fn basic_selector_applies(&self, selector: String) -> bool {
-	if selector == "*" {
-	    return true;
-	} else if selector.starts_with(".") {
-	    let class_selector = selector.split_at(1).1.to_string();
-	    return self.params.get("class") == Some(&class_selector);
-	} else if selector.starts_with("#") {
-	    let id_selector = selector.split_at(1).1.to_string();
-	    return self.params.get("id") == Some(&id_selector);
-	} else {
-	    match &self.node_type {
-		NodeType::Container(tag_name) => return &selector == tag_name,
-		_ => return false
-	    }
+	match &self.node_type {
+	    NodeType::Container(tag_name, _, params) => {
+		if selector == "*" {
+		    return true;
+		} if selector.starts_with(".") {
+		    let class_selector = selector.split_at(1).1.to_string();
+		    return params.get("class") == Some(&class_selector);
+		} else if selector.starts_with("#") {
+		    let id_selector = selector.split_at(1).1.to_string();
+		    return params.get("id") == Some(&id_selector);
+		} else {
+		    return &selector == tag_name;
+		}
+	    },
+	    _ => false
 	}
     }
 }
@@ -131,11 +137,11 @@ impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.node_type {
 	    NodeType::Text(s) => write!(f, "{}\n", s),
-	    NodeType::Container(tag_name) => {
+	    NodeType::Container(tag_name, children, params) => {
 		let mut printed = format!("{}", tag_name);
-		if self.params.len() > 0 {
+		if params.len() > 0 {
 		    printed += "(";
-		    for (param, value) in &self.params {
+		    for (param, value) in params {
 			printed += &format!("{}=\"{}\",", param, value);
 		    }
 		    printed.pop();
@@ -153,7 +159,7 @@ impl std::fmt::Display for Node {
 		    printed += ":";
 		}
 		printed += "\n";
-		for child in self.children.borrow().iter() {
+		for child in children.borrow().iter() {
 		    // make sure that everything is indented
 		    for line in format!("{}", child).split("\n") {
 			// ignore whitespace
@@ -164,9 +170,9 @@ impl std::fmt::Display for Node {
 		}
 		write!(f, "{}", printed)
 	    },
-	    NodeType::Document => {
+	    NodeType::Document(children) => {
 		let mut printed = String::from("");
-		for child in self.children.borrow().iter() {
+		for child in children.borrow().iter() {
 		    printed += &format!("{}", child);
 		}
 		write!(f, "{}", printed)
@@ -234,10 +240,10 @@ pub fn parse(html: String) -> Rc<Node> {
 			} else {
 			    if current_containers.len() > 0 {
 				let index = current_containers.len()-1;
-				current_containers[index].children.borrow_mut().push(Rc::clone(&node));
+				current_containers[index].children().borrow_mut().push(Rc::clone(&node));
 				*node.parent.borrow_mut() = Some(Rc::clone(&current_containers[index])).to_owned();
 			    } else {
-				document.children.borrow_mut().push(Rc::clone(&node));
+				document.children().borrow_mut().push(Rc::clone(&node));
 			    }
 			}
 		    }
@@ -253,10 +259,10 @@ pub fn parse(html: String) -> Rc<Node> {
 			// removes node but adds as child to parent node
 			let index = current_containers.len()-2;
 			let node = current_containers.remove(current_containers.len()-1);
-			current_containers[index].children.borrow_mut().push(Rc::clone(&node));
+			current_containers[index].children().borrow_mut().push(Rc::clone(&node));
 			*node.parent.borrow_mut() = Some(Rc::clone(&current_containers[index])).to_owned();
 		    } else {
-			document.children.borrow_mut().push(Rc::clone(&current_containers.remove(0)));
+			document.children().borrow_mut().push(Rc::clone(&current_containers.remove(0)));
 		    }
 		    tag_content = "".to_string();
 		} else {
@@ -278,7 +284,7 @@ pub fn parse(html: String) -> Rc<Node> {
 			// adds new text node
 			let node = Rc::new(Node::from_text(text_content));
 			let index = current_containers.len()-1;
-			current_containers[index].children.borrow_mut().push(Rc::clone(&node));
+			current_containers[index].children().borrow_mut().push(Rc::clone(&node));
 			*node.parent.borrow_mut() = Some(Rc::clone(&current_containers[index])).to_owned();
 
 		    }
@@ -326,9 +332,15 @@ fn selector_applies(node: Rc<Node>, selector: String) -> bool {
 
 // apply css to all nodes
 pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Node>) {
-    // applies default rules
     match &node.node_type {
-	NodeType::Container(tag_name) => {
+	NodeType::Document(children) => {
+	    // get to all the other nodes in tree
+	    for child in children.borrow().iter() {
+		apply_css(css_rules.clone(), Rc::clone(child));
+	    }
+	},
+	NodeType::Container(tag_name, children, params) => {
+	    // applies default rules
 	    let default = rules::DEFAULT_CSS.iter().find(|t| t.0 == tag_name);
 	    match default {
 		Some((_, default)) => {
@@ -344,42 +356,47 @@ pub fn apply_css(css_rules: Vec<(String, HashMap<String, String>)>, node: Rc<Nod
 		},
 		None => {},
 	    }
+	    // applies rules
+	    for (selector, rules) in css_rules.clone() {
+		if selector_applies(Rc::clone(&node), selector) {
+		    for (key, value) in rules {
+			apply_css_rule(Rc::clone(&node), key, value);
+		    }
+		}
+	    }
+	    // applies inline rules
+	    match params.get("style") {
+		None => {},
+		Some(s) => {
+		    let rules = s.split(";");
+		    for rule in rules {
+			let parts = rule.split(":").collect::<Vec<&str>>();
+			if parts.len() == 2 {
+			    let key = parts[0].trim().to_string();
+			    let value = parts[1].trim().to_string();
+			    apply_css_rule(Rc::clone(&node), key, value);
+			}
+		    }
+		}
+	    }
+	    // get to all the other nodes in tree
+	    for child in children.borrow().iter() {
+		apply_css(css_rules.clone(), Rc::clone(child));
+	    }
 	},
 	_ => {}
     }
-    // applies rules
-    for (selector, rules) in css_rules.clone() {
-	if selector_applies(Rc::clone(&node), selector) {
-	    for (key, value) in rules {
-		apply_css_rule(Rc::clone(&node), key, value);
-	    }
-	}
-    }
-    // applies inline rules
-    match &node.params.get("style") {
-	None => {},
-	Some(s) => {
-	    let rules = s.split(";");
-	    for rule in rules {
-		let parts = rule.split(":").collect::<Vec<&str>>();
-		if parts.len() == 2 {
-		    let key = parts[0].trim().to_string();
-		    let value = parts[1].trim().to_string();
-		    apply_css_rule(Rc::clone(&node), key, value);
-		}
-	    }
-	}
-    }
-    // get to all the other nodes in tree
-    for child in node.children.borrow().iter() {
-	apply_css(css_rules.clone(), Rc::clone(child));
-    }
 }
 fn apply_css_rule(node: Rc<Node>, key: String, value: String) {
-    if rules::INHERITED_PROPERTIES.iter().any(|e| e==&key) {
-	for child in node.children.borrow_mut().iter() {
-	    apply_css_rule(Rc::clone(child), key.clone(), value.clone());
-	}
+    match &node.node_type {
+	NodeType::Container(_, children, _) => {
+	    if rules::INHERITED_PROPERTIES.iter().any(|e| e==&key) {
+		for child in children.borrow_mut().iter() {
+		    apply_css_rule(Rc::clone(child), key.clone(), value.clone());
+		}
+	    }
+	},
+	_ => {},
     }
     node.css.borrow_mut().insert(key, value);
 }
