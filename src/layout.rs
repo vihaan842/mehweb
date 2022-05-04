@@ -100,16 +100,7 @@ impl From<String> for Distance {
 }
 
 // box with size data
-#[derive(Debug, Clone, PartialEq)]
 pub struct LayoutBox {
-    pub margin_left: Distance,
-    pub margin_top: Distance,
-    pub margin_right: Distance,
-    pub margin_bottom: Distance,
-    pub padding_left: Distance,
-    pub padding_top: Distance,
-    pub padding_right: Distance,
-    pub padding_bottom: Distance,
     pub height: Option<Distance>,
     pub width: Option<Distance>,
     pub visual_width: Distance,
@@ -119,27 +110,44 @@ pub struct LayoutBox {
 
 impl LayoutBox {
     pub fn empty() -> LayoutBox {
-	LayoutBox{margin_left: Distance::Absolute(0.),
-		  margin_right: Distance::Absolute(0.),
-		  margin_top: Distance::Absolute(0.),
-		  margin_bottom: Distance::Absolute(0.),
-		  padding_left: Distance::Absolute(0.),
-		  padding_right: Distance::Absolute(0.),
-		  padding_top: Distance::Absolute(0.),
-		  padding_bottom: Distance::Absolute(0.),
-		  width: None,
+	LayoutBox{width: None,
 		  height: None,
 		  visual_width: Distance::Absolute(0.),
 		  visual_height: None,
-		  content: Content::Solid([1.0, 1.0, 1.0, 0.0])}
+		  content: Content::Solid(Block::new())}
     }
 }
 
 // content of box
-#[derive(Debug, Clone, PartialEq)]
 pub enum Content {
-    Solid([f64;4]),
+    Solid(Block),
     Text(Label)
+}
+
+// a block element
+pub struct Block {
+    pub margin_left: Distance,
+    pub margin_top: Distance,
+    pub margin_right: Distance,
+    pub margin_bottom: Distance,
+    pub padding_left: Distance,
+    pub padding_top: Distance,
+    pub padding_right: Distance,
+    pub padding_bottom: Distance,
+    pub color: [f64;4]
+}
+
+impl Block {
+    pub fn new() -> Block {
+	Block{margin_left: Distance::Absolute(0.),
+	      margin_right: Distance::Absolute(0.),
+	      margin_top: Distance::Absolute(0.),
+	      margin_bottom: Distance::Absolute(0.),
+	      padding_left: Distance::Absolute(0.),
+	      padding_right: Distance::Absolute(0.),
+	      padding_top: Distance::Absolute(0.),
+	      padding_bottom: Distance::Absolute(0.), color:[1.0, 1.0, 1.0, 0.0]}
+    }
 }
 
 // text

@@ -5,7 +5,7 @@ use adw::gtk::{Application, Orientation, DrawingArea, cairo::{Context, Path}, pa
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::layout::{Distance, Content, Label};
+use crate::layout::{Distance, Content, Label, Block};
 use crate::html::{Node, NodeType};
 
 pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Node>)>) {
@@ -39,25 +39,37 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 		    return vec![(cr.copy_path().expect("Invalid cairo surface state or path"), [1.0, 1.0, 1.0, 0.0])];
 		}
 		let render = &mut *node.render.borrow_mut();
-		match &render.content {
+		match &mut render.content {
 		    // rectangles with solid color background
-		    Content::Solid(color) => {
+		    Content::Solid(content) => {
 			// get to child nodes and figure out height
 			let mut child_height = Distance::Absolute(0.);
 			let mut child_paths = Vec::new();
 			let mut last_bottom_margin = Distance::Absolute(0.);
 			for child in node.children().borrow().iter() {
-			    let mut top_margin = get_absolute_pos(height, child.render.borrow().margin_top)-get_absolute_pos(height, last_bottom_margin);
-			    if top_margin < 0. {
-				top_margin = 0.;
+			    match &mut child.render.borrow_mut().content {
+				Content::Solid(child_content) => {
+				    let mut top_margin = get_absolute_pos(height, child_content.margin_top)-get_absolute_pos(height, last_bottom_margin);
+				    if top_margin < 0. {
+					top_margin = 0.;
+				    }
+				    child_content.margin_top = Distance::Absolute(top_margin);
+				},
+				_ => {},
 			    }
-			    child.render.borrow_mut().margin_top = Distance::Absolute(top_margin);
-			    child_paths.append(&mut draw_node(cr, Rc::clone(&child), left+render.margin_left+render.padding_left, top+render.margin_top+render.padding_top+child_height, width, height));
+			    child_paths.append(&mut draw_node(cr, Rc::clone(&child), left+content.margin_left+content.padding_left, top+content.margin_top+content.padding_top+child_height, width, height));
 			    let child_render = &mut *child.render.borrow_mut();
 			    match &child_render.height {
 				Some(h) => {
-				    child_height += child_render.margin_top + *h + child_render.margin_bottom;
-				    last_bottom_margin = child_render.margin_bottom;
+				    child_height += *h;
+				    last_bottom_margin = Distance::Absolute(0.);
+				    match &child_render.content {
+					Content::Solid(child_content) => {
+					    child_height += child_content.margin_top + child_content.margin_bottom;
+					    last_bottom_margin = child_content.margin_bottom;
+					},
+					_ => {},
+				    }
 				},
 				None => {}
 			    }
@@ -68,14 +80,14 @@ pub fn build_window() -> (Box<dyn Fn()>, Box<dyn Fn(std::rc::Rc<crate::html::Nod
 			let visual_height = match render.visual_height {
 			    Some(h) => h,
 			    None => child_height
-			} + render.padding_top + render.padding_bottom;
-			let start_x = get_absolute_pos(width, left+render.margin_left);
-			let start_y = get_absolute_pos(height, top+render.margin_top);
+			} + content.padding_top + content.padding_bottom;
+			let start_x = get_absolute_pos(width, left+content.margin_left);
+			let start_y = get_absolute_pos(height, top+content.margin_top);
 			let rect_width = get_absolute_pos(width, render.visual_width);
 			let rect_height = get_absolute_pos(height, visual_height);
 			cr.rectangle(start_x, start_y, rect_width, rect_height);
 			// return paths with current node at the bottom
-			let mut paths = vec![(cr.copy_path().expect("Invalid cairo surface state or path"), *color)];
+			let mut paths = vec![(cr.copy_path().expect("Invalid cairo surface state or path"), content.color)];
 			paths.append(&mut child_paths);
 			paths
 		    },
@@ -250,26 +262,28 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 	    };
 	    // set everything
 	    let layout_box = &mut *node.render.borrow_mut();
+	    let mut content = Block::new();
 	    // weird condition where body's margin is actually padding
 	    if tag_name == "body" {
-		layout_box.padding_left = margin_left;
-		layout_box.padding_right = margin_right;
-		layout_box.padding_top = margin_top;
-		layout_box.padding_bottom = margin_bottom;
+		content.padding_left = margin_left;
+		content.padding_right = margin_right;
+		content.padding_top = margin_top;
+		content.padding_bottom = margin_bottom;
 		layout_box.visual_width = width + margin_left + margin_right;
 	    } else {
-		layout_box.margin_left = margin_left;
-		layout_box.margin_right = margin_right;
-		layout_box.margin_top = margin_top;
-		layout_box.margin_bottom = margin_bottom;
-		layout_box.padding_left = padding_left;
-		layout_box.padding_right = padding_right;
-		layout_box.padding_top = padding_top;
-		layout_box.padding_bottom = padding_bottom;
+		content.margin_left = margin_left;
+		content.margin_right = margin_right;
+		content.margin_top = margin_top;
+		content.margin_bottom = margin_bottom;
+		content.padding_left = padding_left;
+		content.padding_right = padding_right;
+		content.padding_top = padding_top;
+		content.padding_bottom = padding_bottom;
 		layout_box.visual_width = width;
 	    }
 	    layout_box.visual_height = height;
-	    layout_box.content = Content::Solid(color);
+	    content.color = color;		
+	    layout_box.content = Content::Solid(content);
 	    let new_max_width = max_width-margin_left-margin_right-padding_left-padding_right;
 	    let new_max_height = max_height-margin_top-margin_bottom-padding_top-padding_bottom;
 	    // get to children
