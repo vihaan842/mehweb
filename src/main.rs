@@ -1,10 +1,11 @@
-mod html;
-mod css;
+mod renderer;
+mod gui;
 mod rules;
-mod graphics;
-mod layout;
 
 use std::rc::Rc;
+
+use crate::renderer::{Doc, web::{css, html}};
+use crate::gui::gtk4;
 
 fn main() {
     // sample html
@@ -37,7 +38,7 @@ background-color: green;
     let parsed_css = css::parse(css);
     html::apply_css(parsed_css.clone(), Rc::clone(&parsed_html));
     print!("{}", parsed_html);
-    let (run_app, render_document) = crate::graphics::build_window();
-    render_document(parsed_html);
+    let (run_app, render_document) = gtk4::build_window();
+    render_document(Rc::new(Doc::Web(parsed_html)));
     run_app();
 }

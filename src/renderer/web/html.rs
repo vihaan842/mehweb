@@ -1,5 +1,5 @@
 use crate::rules;
-use crate::layout::LayoutBox;
+use crate::renderer::layout::LayoutBox;
 
 use std::collections::HashMap;
 use std::rc::Rc;
