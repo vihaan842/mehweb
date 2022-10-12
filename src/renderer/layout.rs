@@ -90,11 +90,11 @@ impl std::ops::SubAssign for Distance {
 impl From<String> for Distance {
     fn from(s: String) -> Distance {
 	if s.ends_with("em") {
-	    Distance::Absolute(s.trim_end_matches("em").parse::<f64>().unwrap()*crate::rules::DEFAULT_FONT_SIZE as f64)
+	    Distance::Absolute(s.trim_end_matches("em").trim().parse::<f64>().unwrap()*crate::rules::DEFAULT_FONT_SIZE as f64)
 	} else if s.ends_with("%") {
-	    Distance::Relative(s.trim_end_matches('%').parse::<f64>().unwrap()/100.)
+	    Distance::Relative(s.trim_end_matches('%').trim().parse::<f64>().unwrap()/100.)
 	} else {
-	    Distance::Absolute(s.trim_end_matches("px").parse::<f64>().unwrap())
+	    Distance::Absolute(s.trim_end_matches("px").trim().parse::<f64>().unwrap())
 	}
     }
 }

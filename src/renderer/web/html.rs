@@ -62,7 +62,10 @@ impl Node {
 	let mut params = HashMap::new();
 	for param in parts {
 	    let param_parts = param.splitn(2, "=").collect::<Vec<&str>>();
-	    params.insert(param_parts[0].to_string(), param_parts[1].to_string());
+	    // make sure that this is actually a parameter
+	    if param_parts.len() == 2 {
+		params.insert(param_parts[0].to_string(), param_parts[1].to_string());
+	    }
 	}
 	Node{node_type: NodeType::Container(tag_name.to_string(), RefCell::new(Vec::new()), params), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
     }
@@ -219,13 +222,13 @@ pub fn parse(html: String) -> Rc<Node> {
 			str_char = c.clone();
 		    }
 		}
-		if c == '/' && !in_str {
+		if c == '/' && tag_content == "".to_string() {
 		    tag_open = false;
 		} else if tag_content == "!--" && !in_str {
 		    in_tag = false;
 		    in_comment = true;
 		    tag_content = "".to_string();
-		} else if tag_content == "!DOCTYPE" && !in_str {
+		} else if tag_content.to_uppercase() == "!DOCTYPE" && !in_str {
 		    in_doctype = true;
 		    tag_content = "".to_string();
 		} else if c == '>' && !in_str {
