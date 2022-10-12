@@ -1,4 +1,5 @@
-pub mod http;
+mod http;
+mod file;
 
 use std::rc::Rc;
 
@@ -20,6 +21,6 @@ pub fn load_doc(url: String) -> Rc<Doc> {
 	println!("{}", parsed_html);
 	return Rc::new(Doc::Web(parsed_html));
     } else {
-	Rc::new(Doc::Blank)
+	Rc::new(file::load(url.trim_start_matches("file://").to_string()))
     }
 }
