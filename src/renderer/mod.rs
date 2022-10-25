@@ -4,7 +4,7 @@ pub mod web;
 use std::rc::Rc;
 use layout::Distance;
 
-use adw::gtk::cairo::{Path, Context};
+use cairo::{Path, Context};
 
 pub enum Doc {
     Blank,

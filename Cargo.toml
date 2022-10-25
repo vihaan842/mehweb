@@ -6,8 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pangocairo = "0.15.1"
+cairo-rs = { version = "0.16.1", features = ["freetype"] }
+freetype-rs = "0.31.0"
 
 [dependencies.adw]
 package = "libadwaita"
-version = "0.1.1"
+version = "0.2.0"
