@@ -1,6 +1,6 @@
 use std::rc::Rc;
 //use adw::gtk::{cairo::{Context, Path}, pango::{FontDescription, Style, Weight, Gravity, Stretch, Variant}};
-use cairo::{Context, Path, Glyph, FontWeight, FontSlant, FontFace};
+use cairo::{Context, Path, FontWeight, FontSlant, Glyph};
 use crate::renderer::{layout::{Distance, Content, Label, Block}, web::html::{Node, NodeType}};
 
 // recursive function to draw nodes
@@ -64,44 +64,41 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 	},
 	// draw text
 	Content::Text(label) => {
-	    // // set font properties
-	    // let mut font_desc = FontDescription::new();
-	    // font_desc.set_family(crate::rules::DEFAULT_FONT);
-	    // font_desc.set_absolute_size(get_absolute_pos(height, label.font_size) * adw::gtk::pango::SCALE as f64);
-	    // font_desc.set_style(label.slant);
-	    // font_desc.set_weight(label.weight);
-	    // font_desc.set_gravity(Gravity::South);
-	    // font_desc.set_stretch(Stretch::Normal);
-	    // font_desc.set_variant(Variant::Normal);
-	    // // make text with pango
-	    // let layout = pangocairo::create_layout(&cr).unwrap();
-	    // layout.set_font_description(Some(&font_desc));
-	    // layout.set_width(get_absolute_pos(width, render.visual_width) as i32 * adw::gtk::pango::SCALE);
-	    // layout.set_text(&label.text);
-	    // // find out height and width of text
-	    // let (text_width, text_height) = layout.pixel_size();
-	    // render.height = Some(Distance::Absolute(text_height as f64));
-	    // render.width = Some(Distance::Absolute(text_width as f64));
+	    // create freetype library and face (for size info)
 	    let lib = freetype::Library::init().unwrap();
 	    let face = lib.new_face(crate::rules::DEFAULT_FONT, 0).unwrap();
-	    cr.set_font_face(&FontFace::create_from_ft(&face).unwrap());
+	    // set size in cargo and freetype
 	    let size = get_absolute_pos(height, label.font_size);
 	    cr.set_font_size(size);
+	    // freetype uses weird units. for some reason I have to multiply by 64 here, and divide by 48 later?
+	    face.set_char_size(size as isize * 64, 0, 50, 0).unwrap();
+	    let face_height = face.height() as f64 / 48.0;
+	    let face_ascender = face.ascender() as f64 / 48.0;
+	    // where we store our glyphs
 	    let mut glyphs = Vec::new();
-	    let mut x = 0.0;
-	    let mut y = 0.0;
+	    // the current position of the pen
+	    let mut x = get_absolute_pos(width, left);
+	    let mut y = get_absolute_pos(height, top) + face_ascender + face_height;
+	    // the previous glyph character (for kerning)
+	    let mut prev_char: Option<char> = None;
 	    for c in label.text.chars() {
-		glyphs.push(Glyph::new(face.get_char_index(c as usize) as u64, x*0.5*size+get_absolute_pos(width, left), y*size+get_absolute_pos(height, top)));
-		x += 1.0;
-		if x*0.5*size+get_absolute_pos(width, left) > get_absolute_pos(width, render.visual_width) {
-		    x = 0.0;
-		    y += 1.0;
+		face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
+		let ft_glyph = face.glyph();
+		glyphs.push(Glyph::new(face.get_char_index(c as usize) as u64, x, y-face_height));
+		x += ft_glyph.advance().x as f64 / 48.0;
+		if let Some(prev_c) = prev_char {
+		    x += face.get_kerning(face.get_char_index(prev_c as usize), face.get_char_index(c as usize), freetype::face::KerningMode::KerningDefault).unwrap().x as f64;
 		}
+		if x > get_absolute_pos(width, render.visual_width) {
+		    x = get_absolute_pos(width, left);
+		    y += face_height;
+		}
+		prev_char = Some(c);
 	    }
-	    render.width = Some(Distance::Absolute(x*0.5*size));
-	    render.height = Some(Distance::Absolute((y+1.0)*size));
+	    render.width = Some(render.visual_width);
+	    render.height = Some(Distance::Absolute(y-get_absolute_pos(height, top)-face_ascender));
 	    // return paths
-	    cr.show_glyphs(glyphs.as_slice()).expect("Invalid cairo surface state or path");
+	    cr.show_glyphs(&glyphs).expect("Invalid cairo surface state or path");
 	    let color = label.font_color;
 	    //pangocairo::layout_path(&cr, &layout);
 	    vec![(cr.copy_path().expect("Invalid cairo surface state or path"), color)]
