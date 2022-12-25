@@ -1,5 +1,4 @@
 use std::rc::Rc;
-//use adw::gtk::{cairo::{Context, Path}, pango::{FontDescription, Style, Weight, Gravity, Stretch, Variant}};
 use cairo::{Context, Path, FontWeight, FontSlant, Glyph};
 use crate::renderer::{layout::{Distance, Content, Label, Block}, web::html::{Node, NodeType}};
 
@@ -79,7 +78,6 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 	    // the current position of the pen
 	    let mut x = get_absolute_pos(width, left);
 	    let mut y = get_absolute_pos(height, top) + face_ascender + face_height;
-	    // the previous glyph character (for kerning)
 	    let mut prev_char: Option<char> = None;
 	    for c in label.text.chars() {
 		face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
@@ -87,7 +85,7 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 		glyphs.push(Glyph::new(face.get_char_index(c as usize) as u64, x, y-face_height));
 		x += ft_glyph.advance().x as f64 / 48.0;
 		if let Some(prev_c) = prev_char {
-		    x += face.get_kerning(face.get_char_index(prev_c as usize), face.get_char_index(c as usize), freetype::face::KerningMode::KerningDefault).unwrap().x as f64;
+		    x += face.get_kerning(face.get_char_index(prev_c as usize), face.get_char_index(c as usize), freetype::face::KerningMode::KerningUnfitted).unwrap().x as f64 / -48.0;
 		}
 		if x > get_absolute_pos(width, render.visual_width) {
 		    x = get_absolute_pos(width, left);
@@ -95,12 +93,11 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 		}
 		prev_char = Some(c);
 	    }
-	    render.width = Some(render.visual_width);
+	    render.width = Some(Distance::Absolute(y));
 	    render.height = Some(Distance::Absolute(y-get_absolute_pos(height, top)-face_ascender));
 	    // return paths
 	    cr.show_glyphs(&glyphs).expect("Invalid cairo surface state or path");
 	    let color = label.font_color;
-	    //pangocairo::layout_path(&cr, &layout);
 	    vec![(cr.copy_path().expect("Invalid cairo surface state or path"), color)]
 	},
     }
