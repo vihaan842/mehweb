@@ -69,10 +69,12 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 	    // set size in cargo and freetype
 	    let size = get_absolute_pos(height, label.font_size);
 	    cr.set_font_size(size);
-	    // freetype uses weird units. for some reason I have to multiply by 64 here, and divide by 48 later?
-	    face.set_char_size(size as isize * 64, 0, 50, 0).unwrap();
-	    let face_height = face.height() as f64 / 48.0;
-	    let face_ascender = face.ascender() as f64 / 48.0;
+	    // placeholder dpi to look right. TODO: change
+	    face.set_char_size(size as isize * 64, 0, 75, 0).unwrap();
+	    //face.set_pixel_sizes(0, size as u32).unwrap();
+	    // freetype units are 1/64ths of a pixel
+	    let face_height = face.height() as f64 / 64.0;
+	    let face_ascender = face.ascender() as f64 / 64.0;
 	    // where we store our glyphs
 	    let mut glyphs = Vec::new();
 	    // the current position of the pen
@@ -82,10 +84,11 @@ pub fn draw_node(cr: &Context, node: Rc<Node>, left: Distance, top: Distance, wi
 	    for c in label.text.chars() {
 		face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
 		let ft_glyph = face.glyph();
+		let glyph_metrics = ft_glyph.metrics();
 		glyphs.push(Glyph::new(face.get_char_index(c as usize) as u64, x, y-face_height));
-		x += ft_glyph.advance().x as f64 / 48.0;
+		x += glyph_metrics.horiAdvance as f64 / 64.0;
 		if let Some(prev_c) = prev_char {
-		    x += face.get_kerning(face.get_char_index(prev_c as usize), face.get_char_index(c as usize), freetype::face::KerningMode::KerningUnfitted).unwrap().x as f64 / -48.0;
+		    x += face.get_kerning(face.get_char_index(prev_c as usize), face.get_char_index(c as usize), freetype::face::KerningMode::KerningUnfitted).unwrap().x as f64 / 64.0;
 		}
 		if x > get_absolute_pos(width, render.visual_width) {
 		    x = get_absolute_pos(width, left);
