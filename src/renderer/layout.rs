@@ -1,4 +1,4 @@
-use cairo::{FontSlant, FontWeight, Glyph};
+use cairo::{FontSlant, FontWeight};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Distance {
@@ -94,9 +94,22 @@ impl From<String> for Distance {
 	    Distance::Absolute(s.trim_end_matches("em").trim().parse::<f64>().unwrap()*crate::rules::DEFAULT_FONT_SIZE as f64)
 	} else if s.ends_with("%") {
 	    Distance::Relative(s.trim_end_matches('%').trim().parse::<f64>().unwrap()/100.)
-	} else {
+	} else if s.ends_with("px") {
 	    Distance::Absolute(s.trim_end_matches("px").trim().parse::<f64>().unwrap())
+	} else if s == "auto" {
+	    // placeholder
+	    Distance::Relative(0.333)
+	} else if s == "0" {
+	    Distance::Absolute(0.)
+	} else {
+	    panic!("This unit is not implemented yet!: {}", s);
 	}
+    }
+}
+
+impl From<&str> for Distance {
+    fn from(s: &str) -> Distance {
+	Distance::from(s.to_string())
     }
 }
 

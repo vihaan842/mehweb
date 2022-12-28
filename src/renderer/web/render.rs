@@ -155,45 +155,99 @@ pub fn render_node(node: Rc<Node>, max_width: Distance, max_height: Distance) {
 	// containers
 	NodeType::Container(tag_name, children, _) => {
 	    // find margins and padding
-	    let margin = match node.css.borrow().get("margin") {
-		Some(m) => Distance::from(m.to_string()),
-		None => Distance::Absolute(0.)
+	    let mut margin_left = Distance::Absolute(0.);
+	    let mut margin_right = Distance::Absolute(0.);
+	    let mut margin_top = Distance::Absolute(0.);
+	    let mut margin_bottom = Distance::Absolute(0.);
+	    match node.css.borrow().get("margin") {
+		Some(m) => {
+		    let parts: Vec<&str> = m.split(" ").collect();
+		    if parts.len() == 1 {
+			margin_left = Distance::from(parts[0]);
+			margin_right = Distance::from(parts[0]);
+			margin_top = Distance::from(parts[0]);
+			margin_bottom = Distance::from(parts[0]);
+		    } else if parts.len() == 2 {
+			margin_left = Distance::from(parts[1]);
+			margin_right = Distance::from(parts[1]);
+			margin_top = Distance::from(parts[0]);
+			margin_bottom = Distance::from(parts[0]);
+		    } else if parts.len() == 3 {
+			margin_left = Distance::from(parts[1]);
+			margin_right = Distance::from(parts[1]);
+			margin_top = Distance::from(parts[0]);
+			margin_bottom = Distance::from(parts[2]);
+		    } else {
+			margin_left = Distance::from(parts[3]);
+			margin_right = Distance::from(parts[1]);
+			margin_top = Distance::from(parts[0]);
+			margin_bottom = Distance::from(parts[2]);
+		    }
+		},
+		None => {},
 	    };
-	    let margin_left = match node.css.borrow().get("margin-left") {
-		Some(m) => Distance::from(m.to_string()),
-		None => margin
+	    match node.css.borrow().get("margin-left") {
+		Some(m) => margin_left = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let margin_right = match node.css.borrow().get("margin-right") {
-		Some(m) => Distance::from(m.to_string()),
-		None => margin
+	    match node.css.borrow().get("margin-right") {
+		Some(m) => margin_right = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let margin_top = match node.css.borrow().get("margin-top") {
-		Some(m) => Distance::from(m.to_string()),
-		None => margin
+	    match node.css.borrow().get("margin-top") {
+		Some(m) => margin_top = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let margin_bottom = match node.css.borrow().get("margin-bottom") {
-		Some(m) => Distance::from(m.to_string()),
-		None => margin
+	    match node.css.borrow().get("margin-bottom") {
+		Some(m) => margin_bottom = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let padding = match node.css.borrow().get("padding") {
-		Some(p) => Distance::from(p.to_string()),
-		None => Distance::Absolute(0.),
+	    let mut padding_left = Distance::Absolute(0.);
+	    let mut padding_right = Distance::Absolute(0.);
+	    let mut padding_top = Distance::Absolute(0.);
+	    let mut padding_bottom = Distance::Absolute(0.);
+	    match node.css.borrow().get("padding") {
+		Some(m) => {
+		    let parts: Vec<&str> = m.split(" ").collect();
+		    if parts.len() == 1 {
+			padding_left = Distance::from(parts[0]);
+			padding_right = Distance::from(parts[0]);
+			padding_top = Distance::from(parts[0]);
+			padding_bottom = Distance::from(parts[0]);
+		    } else if parts.len() == 2 {
+			padding_left = Distance::from(parts[1]);
+			padding_right = Distance::from(parts[1]);
+			padding_top = Distance::from(parts[0]);
+			padding_bottom = Distance::from(parts[0]);
+		    } else if parts.len() == 3 {
+			padding_left = Distance::from(parts[1]);
+			padding_right = Distance::from(parts[1]);
+			padding_top = Distance::from(parts[0]);
+			padding_bottom = Distance::from(parts[2]);
+		    } else {
+			padding_left = Distance::from(parts[3]);
+			padding_right = Distance::from(parts[1]);
+			padding_top = Distance::from(parts[0]);
+			padding_bottom = Distance::from(parts[2]);
+		    }
+		},
+		None => {},
 	    };
-	    let padding_left = match node.css.borrow().get("padding-left") {
-		Some(p) => Distance::from(p.to_string()),
-		None => padding,
+	    match node.css.borrow().get("padding-left") {
+		Some(m) => padding_left = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let padding_right = match node.css.borrow().get("padding-right") {
-		Some(p) => Distance::from(p.to_string()),
-		None => padding,
+	    match node.css.borrow().get("padding-right") {
+		Some(m) => padding_right = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let padding_top = match node.css.borrow().get("padding-top") {
-		Some(p) => Distance::from(p.to_string()),
-		None => padding,
+	    match node.css.borrow().get("padding-top") {
+		Some(m) => padding_top = Distance::from(m.to_string()),
+		None => {}
 	    };
-	    let padding_bottom = match node.css.borrow().get("padding-bottom") {
-		Some(p) => Distance::from(p.to_string()),
-		None => padding,
+	    match node.css.borrow().get("padding-bottom") {
+		Some(m) => padding_bottom = Distance::from(m.to_string()),
+		None => {}
 	    };
 	    // get width if specified
 	    let width = match node.css.borrow().get("width") {
