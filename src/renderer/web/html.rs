@@ -1,5 +1,4 @@
 use crate::rules;
-use crate::renderer::layout::LayoutBox;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -20,13 +19,11 @@ pub struct Node {
     parent: RefCell<Option<Rc<Node>>>,
     // css properties
     pub css: RefCell<HashMap<String, String>>,
-    // layout render
-    pub render: Rc<RefCell<LayoutBox>>,
 }
 impl Node {
     // empty document
     fn get_document() -> Node {
-	return Node{node_type: NodeType::Document(RefCell::new(Vec::new())), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	return Node{node_type: NodeType::Document(RefCell::new(Vec::new())), parent: RefCell::new(None), css: RefCell::new(HashMap::new())}
     }
     // get new container node from tag
     fn from_tag(tag_content: String) -> Node {
@@ -50,6 +47,7 @@ impl Node {
 		    in_str = true;
 		    str_char = c.clone();
 		} else if c == ' ' {
+
 		    parts.push(word.clone());
 		    word = "".to_string();
 		} else {
@@ -67,7 +65,7 @@ impl Node {
 		params.insert(param_parts[0].to_string(), param_parts[1].to_string());
 	    }
 	}
-	Node{node_type: NodeType::Container(tag_name.to_string(), RefCell::new(Vec::new()), params), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	Node{node_type: NodeType::Container(tag_name.to_string(), RefCell::new(Vec::new()), params), parent: RefCell::new(None), css: RefCell::new(HashMap::new())}
     }
     // gets children, if there are any
     pub fn children(&self) -> &RefCell<Vec<Rc<Node>>> {
@@ -79,7 +77,7 @@ impl Node {
     }
     // get new text node from text
     fn from_text(text: String) -> Node {
-	return Node{node_type: NodeType::Text(text), parent: RefCell::new(None), css: RefCell::new(HashMap::new()), render: Rc::new(RefCell::new(LayoutBox::empty()))}
+	return Node{node_type: NodeType::Text(text), parent: RefCell::new(None), css: RefCell::new(HashMap::new())}
     }
     // checks if container node has end tag
     fn is_empty_element(&self) -> bool {

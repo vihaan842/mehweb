@@ -5,11 +5,11 @@ use adw::gtk::{Application, Orientation, Entry, DrawingArea};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::renderer::Doc;
+use crate::renderer::mtk::widgets::{Content, Block};
 use crate::gui::Gui;
 
 pub struct Gtk4Gui {
-    document: Rc<RefCell<Rc<Doc>>>,
+    document: Rc<RefCell<Rc<dyn Content>>>,
     app: Application,
 }
 
@@ -22,7 +22,7 @@ impl Gui for Gtk4Gui {
             adw::init();
 	});
 	// used to render document
-	let document: Rc<RefCell<Rc<Doc>>> = Rc::new(RefCell::new(Rc::new(Doc::Blank)));
+	let document: Rc<RefCell<Rc<dyn Content>>> = Rc::new(RefCell::new(Rc::new(Block::new())));
 	let return_document = Rc::clone(&document);
 	// runs when app starts
 	app.connect_activate(move |app| {
@@ -43,13 +43,7 @@ impl Gui for Gtk4Gui {
 	    drawing_area.set_draw_func(move |_, cr, width, height| {
 		// draw document
 		let document = Rc::clone(&document);
-		let paths = document.borrow().draw(cr, width, height);
-		for (path, color) in paths {
-		    cr.new_path();
-		    cr.set_source_rgba(color[0], color[1], color[2], color[3]);
-		    cr.append_path(&path);
-		    cr.fill().expect("Invalid cairo surface state or path");
-		}
+		document.borrow().draw_root(cr, width, height);
 	    });
 	    // get drawing area that is at least 500x500
 	    drawing_area.set_size_request(500, 500);
@@ -60,9 +54,7 @@ impl Gui for Gtk4Gui {
 	    urlbar.connect_activate(move |entry| {
 		let url = entry.buffer().text();
 		let document = Rc::clone(&document_setter);
-		let doc = crate::protocols::load_doc(url);
-		doc.render();
-		*document.borrow_mut() = doc;
+		*document.borrow_mut() = crate::protocols::load_and_render_doc(url).into();
 		drawing_area.queue_draw();
 	    });
 	    content.append(&urlbar);
